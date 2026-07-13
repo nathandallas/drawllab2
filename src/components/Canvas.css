@@ -88,7 +88,7 @@
   line-height: 1;
 }
 
-@media (max-width: 750px) {
+@media (max-width: 770px) {
   .canvas-tools-zoom {
     bottom: 5.5rem;
   }
