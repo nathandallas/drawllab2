@@ -1,3 +1,5 @@
+import { getElementCenter, rotatePoint } from "../utils/geometry";
+
 const fadingIds = new Set();
 
 const ERASER_RADIUS = 12;
@@ -12,6 +14,10 @@ const distToSegment = (px, py, x1, y1, x2, y2) => {
 
 // check if within eraser radius of element 
 const hitTest = (el, x, y) => {
+  if (el.angle) {
+    const { x: cx, y: cy } = getElementCenter(el);
+    ({ x, y } = rotatePoint(x, y, cx, cy, -el.angle));
+  }
   if (el.type === "pen") {
     if (!el.points?.length) return false;
     if (el.points.length === 1)

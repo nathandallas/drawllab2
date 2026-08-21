@@ -1,8 +1,9 @@
 import rough from "roughjs/bundled/rough.esm";
 import { drawElement } from "./elements";
 import { getBounds } from "../tools/shared";
+import { ROTATE_HANDLE_OFFSET, ROTATE_HANDLE_RADIUS } from "./constants/canvas";
 
-export const renderCanvas = (canvas, { elements, viewport, marquee, fadingIds, worldWidth, worldHeight }) => {
+export const renderCanvas = (canvas, { elements, viewport, marquee, fadingIds, worldWidth, worldHeight, showRotateHandle }) => {
   if (!canvas) return;
 
   const context = canvas.getContext("2d");
@@ -34,6 +35,21 @@ export const renderCanvas = (canvas, { elements, viewport, marquee, fadingIds, w
       context.fillRect(x, y, w, h);
     }
     context.strokeRect(x, y, w, h);
+
+    if (showRotateHandle && !marquee.isDragging) {
+      const hx = x + w / 2;
+      const hy = y - ROTATE_HANDLE_OFFSET / viewport.zoom;
+      context.setLineDash([]);
+      context.beginPath();
+      context.moveTo(hx, y);
+      context.lineTo(hx, hy);
+      context.stroke();
+      context.beginPath();
+      context.arc(hx, hy, ROTATE_HANDLE_RADIUS / viewport.zoom, 0, Math.PI * 2);
+      context.fillStyle = "#ffffff";
+      context.fill();
+      context.stroke();
+    }
     context.restore();
   }
 };

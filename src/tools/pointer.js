@@ -1,8 +1,9 @@
 import { getElementAtPosition, cursorForPosition, computeSelectionBBox, adjustElementCoordinates, adjustmentRequired } from "../utils/geometry";
-import { buildMoveData } from "./shared";
+import { buildMoveData, rotateHandleHit, tryBeginRotate } from "./shared";
 
 export const onMouseDown = (ctx, clientX, clientY) => {
   const { elements, selectedElementIds, setSelectedElement, setSelectedElementIds, setElements, setAction, setMoveData, setMarquee } = ctx;
+  if (tryBeginRotate(ctx, clientX, clientY)) return;
   const element = getElementAtPosition(clientX, clientY, elements);
 
   if (!element) {
@@ -33,7 +34,8 @@ export const onMouseDown = (ctx, clientX, clientY) => {
   setAction("move");
 };
 
-export const getCursor = ({ elements, selectedElementIds }, clientX, clientY) => {
+export const getCursor = ({ elements, selectedElementIds, marquee, zoom }, clientX, clientY) => {
+  if (marquee && selectedElementIds.length > 0 && rotateHandleHit(marquee, clientX, clientY, zoom)) return "grab";
   const element = getElementAtPosition(clientX, clientY, elements);
   if (!element) return "default";
   if (selectedElementIds.includes(element.id)) return "move";

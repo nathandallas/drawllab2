@@ -1,0 +1,68 @@
+.canvas-tools-io {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.canvas-tools-io__file {
+  display: none;
+}
+
+.canvas-tools-io__anchor {
+  position: relative;
+}
+
+.canvas-tools-io__button--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.canvas-tools-io__popover {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  right: 0;
+  z-index: 20;
+  background: var(--color-background);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 13rem;
+}
+
+.canvas-tools-io__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: "Ubuntu";
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.canvas-tools-io__option input {
+  display: none;
+}
+
+.canvas-tools-io__checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border: 3px solid var(--text-primary);
+  background: var(--text-inverse);
+}
+
+.canvas-tools-io__option input:checked + .canvas-tools-io__checkbox {
+  background: var(--color-secondary);
+  box-shadow: inset 0 0 0 2px var(--text-inverse);
+}
+
+@media (max-width: 770px) {
+  .canvas-tools-io {
+    bottom: 5.5rem;
+  }
+}

@@ -1,9 +1,11 @@
 
 import { getElementAtPosition, computeSelectionBBox, cursorForPosition } from "../utils/geometry";
-import { buildMoveData, isInsideBounds, cornerHit, buildScaleData } from "./shared";
+import { buildMoveData, isInsideBounds, cornerHit, buildScaleData, rotateHandleHit, tryBeginRotate } from "./shared";
 
 export const onMouseDown = (ctx, clientX, clientY) => {
   const { elements, marquee, selectedElementIds, setSelectedElement, setSelectedElementIds, setMoveData, setMarquee, setElements, setAction } = ctx;
+
+  if (tryBeginRotate(ctx, clientX, clientY)) return;
 
   if (marquee && selectedElementIds.length > 0) {
     const corner = cornerHit(marquee, clientX, clientY);
@@ -45,8 +47,9 @@ export const onMouseDown = (ctx, clientX, clientY) => {
 };
 
 
-export const getCursor = ({ elements, marquee, selectedElementIds }, clientX, clientY) => {
+export const getCursor = ({ elements, marquee, selectedElementIds, zoom }, clientX, clientY) => {
   if (marquee && selectedElementIds.length > 0) {
+    if (rotateHandleHit(marquee, clientX, clientY, zoom)) return "grab";
     const corner = cornerHit(marquee, clientX, clientY);
     if (corner) return cursorForPosition(corner);
     if (isInsideBounds(marquee, clientX, clientY)) return "move";

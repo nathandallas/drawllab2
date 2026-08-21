@@ -16,7 +16,7 @@ export const applyGroupTranslate = (elements, moveData, x, y) =>
     }
     const newX1 = x - data.offsetX;
     const newY1 = y - data.offsetY;
-    return createElement(newX1, newY1, newX1 + data.width, newY1 + data.height, data.type, data.color, el.id);
+    return createElement(newX1, newY1, newX1 + data.width, newY1 + data.height, data.type, data.color, el.id, { angle: data.angle, src: data.src });
   });
 
 // scale every element listed in origElements
@@ -39,6 +39,6 @@ export const applyGroupScale = (elements, origElements, origBbox, marqueeCoords,
     if (origEl.type === "pen") {
       return { ...el, points: origEl.points.map(p => ({ x: scaleX(p.x), y: scaleY(p.y) })) };
     }
-    return createElement(scaleX(origEl.x1), scaleY(origEl.y1), scaleX(origEl.x2), scaleY(origEl.y2), origEl.type, origEl.color, el.id);
+    return createElement(scaleX(origEl.x1), scaleY(origEl.y1), scaleX(origEl.x2), scaleY(origEl.y2), origEl.type, origEl.color, el.id, { angle: origEl.angle, src: origEl.src });
   });
 };

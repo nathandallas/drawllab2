@@ -7,3 +7,11 @@ export const MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 5;
 
 export const MARQUEE_PADDING = 8;
+
+// rotate handle above the selection marquee (screen px, divided by zoom when drawn)
+export const ROTATE_HANDLE_OFFSET = 24;
+export const ROTATE_HANDLE_RADIUS = 6;
+export const ROTATE_HIT_RADIUS = 10;
+
+export const EXPORT_PADDING = 20;
+export const IMAGE_MAX_DIMENSION = 2048;

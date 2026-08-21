@@ -1,20 +1,24 @@
 import "./Canvas.css";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createElement } from "../utils/elements";
-import { resizedCoordinates, computeSelectionBBox } from "../utils/geometry";
+import { resizedCoordinates, resizedCoordinatesRotated, computeSelectionBBox, rotatePoint } from "../utils/geometry";
+import { setImageLoadCallback } from "../utils/imageCache";
 import { renderCanvas } from "../utils/canvasRenderer";
 import { applyGroupTranslate, applyGroupScale } from "../utils/transforms";
 import { loadElements, saveElements } from "../utils/storage";
+import { exportPNG } from "../utils/exportCanvas";
 import { WORLD_WIDTH, WORLD_HEIGHT, MARQUEE_PADDING } from "../utils/constants/canvas";
 import useHistory from "../hooks/useHistory";
 import useViewport from "../hooks/useViewport";
 import useWindowSize from "../hooks/useWindowSize";
 import useCanvasShortcuts from "../hooks/useCanvasShortcuts";
 import useForceLightTheme from "../hooks/useForceLightTheme";
+import useImageImport from "../hooks/useImageImport";
 import NavBar from "./NavBar/NavBar";
 import Toolbar from "./canvas/Toolbar/Toolbar";
 import ZoomControls from "./canvas/ZoomControls/ZoomControls";
 import CanvasActions from "./canvas/CanvasActions/CanvasActions";
+import ImageActions from "./canvas/ImageActions/ImageActions";
 import { TOOLS } from "../tools";
 
 const CanvasPage = () => {
@@ -31,17 +35,25 @@ const CanvasPage = () => {
   const [selectedColor, setSelectedColor] = useState("#363636");
   // ids the eraser is hovering — rendered semi-transparent until mouse-up confirms deletion
   const [fadingIds, setFadingIds] = useState(() => new Set());
+  // bumped when an async image decode lands, forcing a repaint
+  const [imageTick, setImageTick] = useState(0);
 
   const canvasRef = useRef(null);
   const windowSize = useWindowSize();
   const { viewport, screenToWorld, zoomAtPoint, beginPan, updatePan, endPan } = useViewport(canvasRef);
   const { isSpaceDown } = useCanvasShortcuts({ undo, redo });
   useForceLightTheme();
+  const { insertImageFile } = useImageImport({ canvasRef, viewport, screenToWorld, windowSize, setElements, setSelectedElementIds, setMarquee, setTool });
 
   // persist on every change
   useEffect(() => {
     saveElements(elements);
   }, [elements]);
+
+  useEffect(() => {
+    setImageLoadCallback(() => setImageTick(t => t + 1));
+    return () => setImageLoadCallback(null);
+  }, []);
 
   // main render loop — paints before the next frame to prevent flicker during drag/resize
   useLayoutEffect(() => {
@@ -52,8 +64,9 @@ const CanvasPage = () => {
       fadingIds,
       worldWidth: WORLD_WIDTH,
       worldHeight: WORLD_HEIGHT,
+      showRotateHandle: selectedElementIds.length > 0 && ["pointer", "marquee", "move"].includes(tool),
     });
-  }, [elements, marquee, fadingIds, viewport, windowSize]);
+  }, [elements, marquee, fadingIds, viewport, windowSize, selectedElementIds, tool, imageTick]);
 
   // mutate one element by id. shapes are recreated from new coords; pen strokes append a point.
   // the `true` flag tells useHistory to overwrite the latest entry, so dragging produces one
@@ -65,8 +78,11 @@ const CanvasPage = () => {
       case "line":
       case "rectangle":
       case "circle":
-        elementsCopy[index] = createElement(x1, y1, x2, y2, type, elementsCopy[index].color, id);
+      case "image": {
+        const { color, angle, src } = elementsCopy[index];
+        elementsCopy[index] = createElement(x1, y1, x2, y2, type, color, id, { angle, src });
         break;
+      }
       case "pen":
         elementsCopy[index].points = [...elementsCopy[index].points, { x: x2, y: y2 }];
         break;
@@ -97,6 +113,7 @@ const CanvasPage = () => {
   const getCtx = () => ({
     elements,
     action,
+    zoom: viewport.zoom,
     selectedElement,
     selectedElementIds,
     marquee,
@@ -176,9 +193,47 @@ const CanvasPage = () => {
           y2: bbox.maxY + MARQUEE_PADDING,
         });
       }
+    } else if (action === "rotate" && moveData?.rotate) {
+      e.target.style.cursor = "grabbing";
+      const { groupCx, groupCy, startPointerAngle, items } = moveData.rotate;
+      const delta = Math.atan2(y - groupCy, x - groupCx) - startPointerAngle;
+      const next = elements.map(el => {
+        const it = items[el.id];
+        if (!it) return el;
+        const angle = it.startAngle + delta;
+        const { x: ncx, y: ncy } = rotatePoint(it.cx, it.cy, groupCx, groupCy, delta);
+        const dx = ncx - it.cx, dy = ncy - it.cy;
+        if (el.type === "pen") return { ...el, angle, points: it.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
+        return createElement(it.x1 + dx, it.y1 + dy, it.x2 + dx, it.y2 + dy, el.type, el.color, el.id, { angle, src: el.src });
+      });
+      setElements(next, true);
+      const bbox = computeSelectionBBox(next.filter(el => selectedElementIds.includes(el.id)));
+      if (bbox) {
+        setMarquee({
+          x1: bbox.minX - MARQUEE_PADDING,
+          y1: bbox.minY - MARQUEE_PADDING,
+          x2: bbox.maxX + MARQUEE_PADDING,
+          y2: bbox.maxY + MARQUEE_PADDING,
+        });
+      }
     } else if (action === "marquee-resize" && selectedElement && moveData) {
       const { position, x1, y1, x2, y2 } = selectedElement;
-      const coords = resizedCoordinates(x, y, position, { x1, y1, x2, y2 });
+      let coords;
+      if (e.shiftKey) {
+        // constrain the inner content box, not the padded marquee, so the ratio is exact
+        const p = MARQUEE_PADDING;
+        const inner = resizedCoordinatesRotated(
+          x + (position.includes("l") ? p : -p),
+          y + (position.startsWith("t") ? p : -p),
+          position,
+          { x1: x1 + p, y1: y1 + p, x2: x2 - p, y2: y2 - p },
+          0,
+          true,
+        );
+        coords = inner && { x1: inner.x1 - p, y1: inner.y1 - p, x2: inner.x2 + p, y2: inner.y2 + p };
+      } else {
+        coords = resizedCoordinates(x, y, position, { x1, y1, x2, y2 });
+      }
       if (!coords) return;
       setMarquee(prev => ({ ...prev, ...coords }));
 
@@ -188,7 +243,7 @@ const CanvasPage = () => {
       }
     } else if (action === "resize" && selectedElement) {
       const { id, type, position, ...coordinates } = selectedElement;
-      const { x1, y1, x2, y2 } = resizedCoordinates(x, y, position, coordinates);
+      const { x1, y1, x2, y2 } = resizedCoordinatesRotated(x, y, position, coordinates, selectedElement.angle ?? 0, e.shiftKey);
       updateElement(id, x1, y1, x2, y2, type);
     }
   };
@@ -217,6 +272,7 @@ const CanvasPage = () => {
         }}
       />
       <ZoomControls viewport={viewport} zoomAtPoint={zoomAtPoint} anchorX={windowSize.w / 3} anchorY={windowSize.h / 3} />
+      <ImageActions onUploadFile={insertImageFile} onExport={opts => exportPNG(elements, opts)} canExport={elements.length > 0} />
       <NavBar className="canvas-nav" />
       <canvas
         id="canvas"
