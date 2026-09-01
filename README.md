@@ -40,7 +40,6 @@ I originally created Drawllab in 2021 as my capstone project for Brainstation's 
 
 ## Updates to Come
 
-- Page Load Animations
 - Text Tool
 - Layers
 - Change stroke size
