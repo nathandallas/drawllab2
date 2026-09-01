@@ -42,12 +42,10 @@ I originally created Drawllab in 2021 as my capstone project for Brainstation's 
 
 - Page Load Animations
 - Text Tool
-- Upload or paste image tool
 - Layers
 - Change stroke size
 - Change Canvas Background and Grid
 - Keyboard tool selection and navigation
-- File Saving
 - Web Sockets for Collaboration
 
 ## How to Install
@@ -71,5 +69,5 @@ $ npm run dev
 
 ## Authors
 
-- **Nathan Challender** - [GitHub](https://github.com/nathandallas)
+- **Nathan Challender** - [GitHub](https://github.com/nathandallas) | [Portfolio](https://nathandallas.github.io/portfolio/)
 
