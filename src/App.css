@@ -75,19 +75,14 @@ h5 {
   display: block;
 }
 
-.lift {
-  --lift-hover-translate: -2px;
-  --lift-hover-shadow: 5px;
-  --lift-active-translate: 3px;
-  --lift-active-shadow: 2px;
-}
-
 .lift:hover {
-  transform: translate(var(--lift-hover-translate), var(--lift-hover-translate));
-  box-shadow: var(--lift-hover-shadow) var(--lift-hover-shadow) 0 var(--text-primary);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--text-primary);
 }
 
-.lift:active {
-  transform: translate(var(--lift-active-translate), var(--lift-active-translate));
-  box-shadow: var(--lift-active-shadow) var(--lift-active-shadow) 0 var(--text-primary);
+.lift:active,
+a:active > .lift {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--text-primary);
+  transition: transform 0.09s ease-out, box-shadow 0.09s ease-out;
 }
